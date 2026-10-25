@@ -28,8 +28,14 @@ Sorted per the notes in [Template](#template).
 	- Priority|Severity: High
 	- Opened: 20261019-111500
 	- Opened by: t00mietum
-	- Related IDs: 2026101911150304
+	- Related IDs: 2026101911150304, 2026102506554108
 	- Requirements:
+		- Sweeping override, 2026-10-24: this supersedes any earlier decision on this project that conflicts with it.
+		- 2026-10-25: this is now the reset's standard flags item, and the shared flags replace the list below where they differ.
+			- None for the default run under about an hour, `--quick`, `--long` with `--slow` as another name, `--leakcheck`, `--no-leakcheck`, `--backlog-run-quick [<area>...]`, `--backlog-run-full`, `--merge-gate`, `--no-container`, `--no-remote`, `--no-sync`, `--keep-temp`, `--list`, `--help`, `--quiet`, and `--message`.
+			- `--ci` becomes `--merge-gate`, not `--gate`. `--gate` and `--ci` stay as other names for `--backlog-run-quick` and `--merge-gate`.
+			- The backlog and merge gate runs never dogfood, publish, commit, push, install, sync, rewrite a tracked file, or prompt.
+			- A pre-push hook runs `--merge-gate` on a push to `main` only. A push to `dev` or a feature branch isn't gated, and a docs-only push to `main` skips it, with the docs paths in one place the hook reads.
 		- Rename `--ci` to `--gate`.
 		- `--quick`:
 			- Runs whatever linting, validation, and testing steps are very quick.
@@ -38,6 +44,87 @@ Sorted per the notes in [Template](#template).
 		- No flags by default does everything.
 		- The other existing flags can stay.
 
+- CICD reset: containers
+	- ID: 2026102506554100
+	- Type: Task
+	- Status: Queued
+	- Priority|Severity: High
+	- Opened: 20261025-065541
+	- Opened by: t00mietum
+	- Related IDs: 2026102506554108
+	- Requirements:
+		- Sweeping override, 2026-10-24: this supersedes any earlier decision on this project that conflicts with it.
+		- There's no code or pipeline yet, so this goes in with the first crate.
+		- Build and test in a pinned image from a recipe in the repo, with the Rust toolchain and the X11 and Wayland dev libraries pinned.
+		- The headless clipboard tests can run in it, on a private X server and a headless Wayland compositor. Checks against a real panel's tray run on the host.
+		- A missing docker falls back to the host with one line, and never fails a run. `--no-container` runs on the host on purpose.
+
+- CICD reset: container cleanup
+	- ID: 2026102506554101
+	- Type: Task
+	- Status: Queued
+	- Priority|Severity: High
+	- Opened: 20261025-065541
+	- Opened by: t00mietum
+	- Prereq IDs: 2026102506554100
+	- Related IDs: 2026101911150302
+	- Requirements:
+		- Sweeping override, 2026-10-24: this supersedes any earlier decision on this project that conflicts with it.
+		- Every container, image, and volume gets `dev.project=tukzclip` and `dev.run=<run folder name>`, and containers are named `tukzclip-<run folder name>-<step>`.
+		- Containers run with `--rm`, unless `--keep-temp` was passed. The run's containers are removed by label at its end, on failure and Ctrl+C too.
+		- The project's dangling images go, and older tags once a newer one has passed, keeping the current tag and the one before it. Then `docker builder prune -f --filter until=168h`.
+		- Nothing without the project's label is touched. The end of the run says what it removed and about what that freed.
+
+- CICD reset: CPU and priority
+	- ID: 2026102506554102
+	- Type: Task
+	- Status: Queued
+	- Priority|Severity: High
+	- Opened: 20261025-065541
+	- Opened by: t00mietum
+	- Requirements:
+		- Sweeping override, 2026-10-24: this supersedes any earlier decision on this project that conflicts with it.
+		- Half the logical CPUs, or a quarter when the 1-minute load is over half the CPU count, checked at the start and before each step. The heavy steps, such as the leak checks and the soak test, use a quarter, busy or not.
+		- The counts are worked out once and passed to cargo's `-j` and `--test-threads`, and to anything else that runs in parallel.
+		- Everything runs under `nice -n 19`, plus `ionice -c 3`. Containers get `--cpus` and `--cpu-shares 256`, and `nice` inside.
+
+- CICD reset: step output
+	- ID: 2026102506554103
+	- Type: Task
+	- Status: Queued
+	- Priority|Severity: High
+	- Opened: 20261025-065541
+	- Opened by: t00mietum
+	- Requirements:
+		- Sweeping override, 2026-10-24: this supersedes any earlier decision on this project that conflicts with it.
+		- Each step prints the shared lines: a 79 character rule, `[ YYYYmmDD-HHMMSS.NN: Step 1 of 9; Starting Format ]`, its output, then `PASS Format` or `FAIL Format` in the same form.
+		- Steps turned off aren't counted, and the first section lists them with the flag or reason.
+
+- CICD reset: a test for every Done item
+	- ID: 2026102506554104
+	- Type: Task
+	- Status: Queued
+	- Priority|Severity: High
+	- Opened: 20261025-065541
+	- Opened by: t00mietum
+	- Requirements:
+		- Sweeping override, 2026-10-24: this supersedes any earlier decision on this project that conflicts with it.
+		- No item is Done yet, so nothing is missing a test today.
+		- Every Done feature and bug from now on names its test's ID in `Test case`, or says in a few words why it has none.
+
+- CICD reset: test IDs
+	- ID: 2026102506554105
+	- Type: Task
+	- Status: Queued
+	- Priority|Severity: High
+	- Opened: 20261025-065541
+	- Opened by: t00mietum
+	- Requirements:
+		- Sweeping override, 2026-10-24: this supersedes any earlier decision on this project that conflicts with it.
+		- Every test gets a unique ID, from when it was first committed: whole minutes since 2000-01-01 UTC, in lower-case Crockford base 32. 2 that come out the same take the next free minute, and an ID never changes.
+		- The run prints one line per test, such as `PASS decp8 text copy outlives its app`, or `FAIL` or `SKIP`.
+		- `Test case` rows in the backlog name the IDs.
+
 - Pre-next-cut: Builds clean up stale artifacts and side effects
 	- ID: 2026101911150302
 	- Type: Enhancement
@@ -45,7 +132,14 @@ Sorted per the notes in [Template](#template).
 	- Priority|Severity: Avg
 	- Opened: 20261019-111500
 	- Opened by: t00mietum
+	- Related IDs: 2026102506554101, 2026102506554106
 	- Requirements:
+		- Sweeping override, 2026-10-24: this supersedes any earlier decision on this project that conflicts with it.
+		- 2026-10-25: containers are now 2026102506554101, and temp files 2026102506554106. This item keeps the rest.
+			- Build caches older than the current toolchain and lockfile are pruned. A warm cache for the current ones stays.
+			- Old artifacts beyond what GFS rotation keeps go.
+			- One line at the end says what was removed and roughly what it freed.
+			- Checked by running the pipeline twice, killing one partway, and seeing nothing new pile up.
 		- Verify or ensure that builds clean up *stale* artifacts and side effects when they're done: caches, container cruft, tmp files, etc.
 
 - Pre-next-cut: CICD `--leakcheck` and `--no-leakcheck`
@@ -58,6 +152,8 @@ Sorted per the notes in [Template](#template).
 	- Parent ID: 2026101714414461
 	- Related IDs: 2026101911150300
 	- Requirements:
+		- Sweeping override, 2026-10-24: this supersedes any earlier decision on this project that conflicts with it.
+		- 2026-10-25: under the reset, `--leakcheck` adds every leak check and `--no-leakcheck` takes every one out, fast ones included. The rest of the flags are in 2026101911150300.
 		- CICD has both `--leakcheck` and `--no-leakcheck`.
 			- `--leakcheck` is useful to add back in for `--quick`.
 			- `--no-leakcheck` is useful to exclude from the default, or with `--quiet`.
@@ -133,6 +229,52 @@ Sorted per the notes in [Template](#template).
 			- heaptrack and dhat both see only the global allocator. A crate that maps memory itself, or a custom allocator, hides it.
 			- ASan and TSan can't share a build, and heaptrack can't share one with either. The soak test uses a plain build.
 	- Note: tukzclip is planned in Rust, per `design.md`. No code yet, so the gates go in with the first crate.
+
+- CICD reset: temp files and safe removal
+	- ID: 2026102506554106
+	- Type: Task
+	- Status: Queued
+	- Priority|Severity: Avg
+	- Opened: 20261025-065541
+	- Opened by: t00mietum
+	- Related IDs: 2026101911150302
+	- Requirements:
+		- Sweeping override, 2026-10-24: this supersedes any earlier decision on this project that conflicts with it.
+		- Each run's folder is `<HOST_TEMP>/tukzclip/<YYYYmmDD-HHMMSS>_<NNN>/`, made with a plain `mkdir` and a counter, with `TMPDIR`, `TEMP`, and `TMP` pointed into it. Unit tests' scratch folders and any saved history file go there too.
+		- A trap removes it at the end, on failure and Ctrl+C too, through the shared guard. No bare `rm -rf`, and also no unguarded removal anywhere else. `--keep-temp` keeps it and prints its path.
+		- Each run writes `run.pid` there, and removes the project's own folders older than 2 days whose process is gone.
+		- A test that starts an X server, a compositor, a session bus, or a clipboard owner stops it, on failure too. Tests never touch the desktop session's own clipboard.
+
+- CICD reset: version line
+	- ID: 2026102506554107
+	- Type: Task
+	- Status: Queued
+	- Priority|Severity: Avg
+	- Opened: 20261025-065541
+	- Opened by: t00mietum
+	- Requirements:
+		- Sweeping override, 2026-10-24: this supersedes any earlier decision on this project that conflicts with it.
+		- `tukzclip --version` and the tray menu's About print `tukzclip v<version> build <build>`, then the copyright line. The build number is the commit's time in minutes since 2000, in lower-case Crockford base 32.
+		- A non-release build adds its date after the build number, from that same time, in the viewer's time zone.
+		- The version comes from one place, read by both the tag and the build stamp.
+
+- CICD reset: CICD process gaps
+	- ID: 2026102506554108
+	- Type: Task
+	- Status: Queued
+	- Priority|Severity: Avg
+	- Opened: 20261025-065541
+	- Opened by: t00mietum
+	- Related IDs: 2026101911150300, 2026101714414461
+	- Requirements:
+		- Sweeping override, 2026-10-24: this supersedes any earlier decision on this project that conflicts with it.
+		- A `cicd.bash` per the shared CICD rules, with the first crate: remote sync first, format, build, lint, tests, fuzz, release build, dogfood, and cleanup.
+		- `rust-toolchain.toml` pins the toolchain, and lint and audit tools are pinned in one place.
+		- Lint output rotated into `cicd/artifacts/lint/`, with a `--check` that prints only what's new.
+		- Fuzzing of what tukzclip reads from other apps: odd MIME types, huge and empty offers, and offers that vanish mid-read.
+		- A pre-push hook for the merge gate, per 2026101911150300.
+		- `.deb` and `.rpm` packages, and a profiler stage.
+		- The leak checks are already filed, under 2026101714414461 and 2026101714414463.
 
 **Stop here for a next release**
 
