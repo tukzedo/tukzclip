@@ -21,6 +21,20 @@ This is a product backlog just for pre-v1.0.0 release. After that, bugs, feature
 
 Sorted per the notes in [Template](#template).
 
+- The planned container cleanup prunes every project's docker build cache
+	- ID: 2026110311291919
+	- Type: Bug
+	- Status: Queued
+	- Priority|Severity: High
+	- Opened: 20261103-112919
+	- Opened by: JC
+	- Related IDs: 2026102506554101, common 2026110311291900
+	- Incorrect behavior: Item 2026102506554101 plans `docker builder prune -f --filter until=168h` at the end of a run, from common's `Cleanup after a run` rule. That prunes docker's default builder, which every project shares, so it would drop any other project's cache once it's a week unused.
+	- Expected behavior: Leave the prune out of the cleanup. Docker trims the cache itself on b23, through `builder.gc` in `/etc/docker/daemon.json`. Cache unused for a week goes first, then the rest is cut to 120 GB, or further when the disk is under 10% free, but never below 20 GB. The rest of the cleanup item stands.
+	- Decisions:
+		- Don't move to a buildx builder of the project's own instead. shcl tried that on 2026-11-02. A cold build of a 2 GB image took 299 s against 266 s on the default builder, and the builder kept a second 3 GB copy of the layers for a week. shcl is going back to the default builder. (JC, me)
+	- Estimated effort: Low
+
 - Pre-next-cut: Updates to CICD script flags (do next)
 	- ID: 2026101911150300
 	- Type: Enhancement
